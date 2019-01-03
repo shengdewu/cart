@@ -48,7 +48,8 @@ class regTree(object):
         '''
 
         #如果类别一样则不划分
-        if len(set(dataSet[:, -1])) == 1:
+
+        if len(set(dataSet[:,-1].T.tolist()[0])) == 1:
             return None, leafMeth(dataSet)
 
         fdim, fnum = np.shape(dataSet)
@@ -57,12 +58,11 @@ class regTree(object):
         bestError = np.inf
         bestVal = None
         for index in range(fnum):
-            for splitVal in set(dataSet[:,index]):
+            for splitVal in set(dataSet[:,index].T.tolist()[0]):
                 mat0, mat1 = self.spliteData(dataSet, index, splitVal)
-                sumErr = errMeth(mat0) + errMeth(mat1)
-
                 if np.shape(mat0)[0] < ops[1] or np.shape(mat1)[0] < ops[1]:
                     continue
+                sumErr = errMeth(mat0) + errMeth(mat1)
                 if bestError > sumErr:
                     bestError = sumErr
                     bestIndex = index
@@ -72,7 +72,7 @@ class regTree(object):
         if initErr - bestError < ops[0]:
             return None, leafMeth(dataSet)
         mat0, mat1 = self.spliteData(dataSet, bestIndex, bestVal)
-        if mat0.shape()[0] < ops[1] or mat1.shape()[0] < ops[1]:
+        if np.shape(mat0)[0] < ops[1] or np.shape(mat1)[0] < ops[1]:
             return None, leafMeth(dataSet)
         return bestIndex, bestVal
 
@@ -80,10 +80,10 @@ class regTree(object):
         bestIndex, bestVal = self.chooseBestFeet(dataSet, errMeth, leafMeth, ops)
         if bestIndex == None:
             return bestVal
-        regTree = treeNode()
-        regTree.featFeature['spInd'] = bestIndex
-        regTree.splitValue['spVal'] = bestVal
+        regTree = {}
+        regTree['spInd'] = bestIndex
+        regTree['spVal'] = bestVal
         left, right = self.spliteData(dataSet, bestIndex, bestVal)
-        regTree.leftTree['left'] = self.createTree(left, errMeth, leafMeth, ops)
-        regTree.leftTree['right'] = self.createTree(right, errMeth, leafMeth, ops)
+        regTree['left'] = self.createTree(left, errMeth, leafMeth, ops)
+        regTree['right'] = self.createTree(right, errMeth, leafMeth, ops)
         return regTree
