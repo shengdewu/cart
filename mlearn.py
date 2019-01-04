@@ -57,7 +57,7 @@ class regTree(object):
         initErr = errMeth(dataSet)
         bestError = np.inf
         bestVal = None
-        for index in range(fnum):
+        for index in range(fnum-1): #跳过标签
             for splitVal in set(dataSet[:,index].T.tolist()[0]):
                 mat0, mat1 = self.spliteData(dataSet, index, splitVal)
                 if np.shape(mat0)[0] < ops[1] or np.shape(mat1)[0] < ops[1]:
