@@ -1,4 +1,11 @@
 import numpy as np
+from enum import Enum
+
+class treeInfo(Enum):
+    LEFT='left'
+    RIGHT='right'
+    SPINDEX='spInd'
+    SPVAL='spVal'
 
 class treeNode(object):
     def __init__(self, feat, value, left, right):
@@ -81,9 +88,53 @@ class regTree(object):
         if bestIndex == None:
             return bestVal
         regTree = {}
-        regTree['spInd'] = bestIndex
-        regTree['spVal'] = bestVal
+        regTree[treeInfo.SPINDEX.value] = bestIndex
+        regTree[treeInfo.SPVAL.value] = bestVal
         left, right = self.spliteData(dataSet, bestIndex, bestVal)
-        regTree['left'] = self.createTree(left, errMeth, leafMeth, ops)
-        regTree['right'] = self.createTree(right, errMeth, leafMeth, ops)
+        regTree[treeInfo.LEFT.value] = self.createTree(left, errMeth, leafMeth, ops)
+        regTree[treeInfo.RIGHT.value] = self.createTree(right, errMeth, leafMeth, ops)
         return regTree
+
+    def isTree(self, tree):
+        return isinstance(tree, dict)
+
+    def getMean(self, tree):
+        if not self.isTree(tree):
+            return tree
+
+        if self.isTree(tree[treeInfo.LEFT.value]):
+            tree[treeInfo.LEFT.value] = self.getMean(tree[treeInfo.LEFT.value])
+
+        if self.isTree(tree[treeInfo.RIGHT.value]):
+            tree[treeInfo.RIGHT.value] = self.getMean(tree[treeInfo.RIGHT.value])
+
+        return (tree[treeInfo.LEFT.value] + tree[treeInfo.RIGHT.value])/2
+
+    def prun(self, tree, testData):
+        if np.shape(testData)[0] == 0:
+            return self.getMean(tree)
+
+        if not self.isTree(tree):
+            return tree
+
+        if self.isTree(tree[treeInfo.LEFT.value]) or self.isTree(tree[treeInfo.RIGHT.value]):
+            left, right = self.spliteData(testData, tree[treeInfo.SPINDEX.value], tree[treeInfo.SPVAL.value])
+            tree[treeInfo.LEFT.value] = self.prun(tree[treeInfo.LEFT.value], left)
+            tree[treeInfo.RIGHT.value] = self.prun(tree[treeInfo.RIGHT.value], right)
+
+        if (not self.isTree(tree[treeInfo.LEFT.value])) and (not self.isTree(tree[treeInfo.RIGHT.value])):
+            left, right = self.spliteData(testData, tree[treeInfo.SPINDEX.value], tree[treeInfo.SPVAL.value])
+            lvar = 0; rvar=0
+            if len(left):
+                lvar = np.var(left[:,-1]) * np.shape(left)[0]
+            if len(right):
+                rvar = np.var(right[:,-1]) * np.shape(right)[0]
+            noMergeErr = np.power(lvar - tree[treeInfo.LEFT.value], 2) + np.power(rvar - tree[treeInfo.RIGHT.value],2)
+            treeMean = (tree[treeInfo.LEFT.value] + tree[treeInfo.RIGHT.value])/2
+            mergeErr = np.power(np.var(testData[:,-1]) * np.shape(testData)[0] - treeMean,2)
+
+            if noMergeErr > mergeErr:
+                print('merge...')
+                return treeMean
+
+        return tree
