@@ -37,6 +37,31 @@ class tools(object):
     def leafCreate(self, dataSet):
         return np.mean(dataSet[:,-1])
 
+    def sloveLine(self, dataSet):
+        #这种 y = x * w + w 考虑了正则，增加了误差项
+        m, n = np.shape(dataSet)
+        X = np.mat(np.ones((m, n)))
+        Y = np.mat(np.ones((m, 1)))
+        X[:, 1:n] = dataSet[:, 0:n - 1]
+        Y = dataSet[:, -1]
+
+        #这种 y = x * w
+        # X = dataSet[:,0:-1]
+        # Y = dataSet[:,-1]
+        XTX = X.T * X
+        if 0 == np.linalg.det(XTX):
+            raise ValueError(str('the matrix is not Reversible'))
+        w = np.linalg.inv(XTX) * (X.T * Y)
+        return w, X, Y
+
+    def errMode(self, dataSet):
+        w, X, Y = self.sloveLine(dataSet)
+        return np.sum(np.power(Y-X*w, 2))
+
+    def leafMode(self, dataSet):
+        w, X, Y = self.sloveLine(dataSet)
+        return w
+
 class regTree(object):
 
     def spliteData(self, dataSet, feature, value):
@@ -55,7 +80,6 @@ class regTree(object):
         '''
 
         #如果类别一样则不划分
-
         if len(set(dataSet[:,-1].T.tolist()[0])) == 1:
             return None, leafMeth(dataSet)
 
