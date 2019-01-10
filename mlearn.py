@@ -31,10 +31,10 @@ class tools(object):
 
         return np.mat(dataMat)
 
-    def errCalc(self, dataSet):
+    def errReg(self, dataSet):
         return np.var(dataSet[:,-1]) * np.shape(dataSet)[0]
 
-    def leafCreate(self, dataSet):
+    def leafReg(self, dataSet):
         return np.mean(dataSet[:,-1])
 
     def sloveLine(self, dataSet):
@@ -61,6 +61,18 @@ class tools(object):
     def leafMode(self, dataSet):
         w, X, Y = self.sloveLine(dataSet)
         return w
+
+    def preMode(self, mode, inData):
+        #m肯定为1
+        m,n = np.shape(inData)
+        if 1 != m:
+            raise ValueError(str('invalid test data, the must be 1*n'))
+        X = np.mat(np.ones((m, n+1)))
+        X[:,1:n+1] = inData
+        return float(X*mode)
+
+    def preReg(self, mode, inData):
+        return float(mode)
 
 class regTree(object):
 
@@ -162,3 +174,25 @@ class regTree(object):
                 return treeMean
 
         return tree
+
+    def predictSingl(self, tree, inData, preMode):
+        if self.isTree(tree):
+            if inData[tree[treeInfo.SPINDEX.value]] > tree[treeInfo.SPVAL.value]:#left tree
+                if not self.isTree(tree[treeInfo.LEFT.value]):
+                    return preMode(tree[treeInfo.LEFT.value], inData)
+                else:
+                    return self.predictSingl(tree[treeInfo.LEFT.value], inData, preMode)
+            else: #right tree
+                if not self.isTree(tree[treeInfo.RIGHT.value]):
+                    return preMode(tree[treeInfo.RIGHT.value], inData)
+                else:
+                    return self.predictSingl(tree[treeInfo.RIGHT.value], inData, preMode)
+
+        return preMode(tree, inData)
+
+    def predict(self, tree, testData, preMode):
+        m, n = np.shape(testData)
+        Y = np.mat(np.zeros((m,1)))
+        for i in range(0, m):
+            Y[i,0] = self.predictSingl(tree, testData[i,:], preMode)
+        return Y
